@@ -15,7 +15,7 @@ jobs:
 
       - name: Run pipeline-gen action
         id: run-action
-        uses: GitHub-Accelerate/automatic-pipeline-generator-action
+        uses: GitHub-Accelerate/automatic-pipeline-generator-action@main
 
       - name: Commit and push if workflow changed
         if: steps.run-action.outputs.workflow-updated == 'true'
