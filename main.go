@@ -74,11 +74,11 @@ func commitAndPushWorkflow(destPath string) error {
 	fmt.Println("Committing and pushing workflow changes...")
 
 	// Get required environment variables
-	githubToken := os.Getenv("GITHUB_TOKEN")
+	githubToken := os.Getenv("GH_WORKFLOW_WRITE")
 	githubRef := os.Getenv("GITHUB_REF")
 
 	if githubToken == "" || githubRef == "" {
-		return fmt.Errorf("required environment variables not set (GITHUB_TOKEN, GITHUB_REF)")
+		return fmt.Errorf("required environment variables not set (GH_WORKFLOW_WRITE, GITHUB_REF)")
 	}
 
 	// Open the repository
