@@ -1,4 +1,27 @@
+name: Pipeline generator
+
+on:
+  - push
+  - pull_request
+
+permissions: write-all
+
 jobs:
+  run-generator:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - env:
+          GH_WORKFLOW_WRITE: ${{ secrets.GH_WORKFLOW_WRITE }}
+        id: run-action
+        name: Run pipeline-gen action
+        uses: GitHub-Accelerate/automatic-pipeline-generator-action@main
+    outputs:
+      workflow-updated: ${{ steps.run-action.outputs.workflow-updated }}
+
   main:
     if: needs.run-generator.outputs.workflow-updated == 'false'
     needs: run-generator
@@ -21,22 +44,3 @@ jobs:
         with:
           name: build-artifact
           path: build.zip
-  run-generator:
-    outputs:
-      workflow-updated: ${{ steps.run-action.outputs.workflow-updated }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-      - env:
-          GH_WORKFLOW_WRITE: ${{ secrets.GH_WORKFLOW_WRITE }}
-        id: run-action
-        name: Run pipeline-gen action
-        uses: GitHub-Accelerate/automatic-pipeline-generator-action@main
-name: Pipeline generator
-on:
-  - push
-  - pull_request
-permissions: write-all
