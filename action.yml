@@ -16,6 +16,7 @@ runs:
   args:
     - ${{ inputs.packages_to_install-file }}
     - ${{ inputs.docker_image_to_use }}
+    - ${{ inputs.item_to_build }}
 branding:
   icon: 'git-commit'
   color: 'green'
