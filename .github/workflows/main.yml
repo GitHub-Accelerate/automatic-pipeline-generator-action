@@ -2,7 +2,6 @@ name: Default
 
 on: [push, pull_request]
 
-
 jobs:
   main:
     runs-on: ubuntu-latest
@@ -20,3 +19,13 @@ jobs:
 
     - name: Test
       run: go test -v ./...
+
+    - name: Package build folder
+      run: |
+        zip -r build.zip ../build
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifact
+        path: build.zip
