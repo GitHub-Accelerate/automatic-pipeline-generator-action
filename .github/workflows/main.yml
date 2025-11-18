@@ -1,9 +1,7 @@
-name: Push File
+name: Default
 
-on: [pull_request]
+on: [push, pull_request]
 
-env:
-    sha: $GITHUB_SHA
 
 jobs:
   copy-file:
