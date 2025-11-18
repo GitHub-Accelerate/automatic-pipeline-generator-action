@@ -52,6 +52,28 @@ func main() {
 		break
 	}
 
+	// Check if Makefile exists and modify build/test steps accordingly
+	if _, err := os.Stat("Makefile"); err == nil {
+		fmt.Println("Found Makefile, updating build and test commands")
+
+		// Modify the job steps to use make commands
+		if jobMap, ok := sourceJob.(map[string]interface{}); ok {
+			if steps, ok := jobMap["steps"].([]interface{}); ok {
+				for _, step := range steps {
+					if stepMap, ok := step.(map[string]interface{}); ok {
+						if name, ok := stepMap["name"].(string); ok {
+							if name == "Build" {
+								stepMap["run"] = "make build"
+							} else if name == "Test" {
+								stepMap["run"] = "make test"
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Load or create destination workflow
 	var destWorkflow map[string]interface{}
 	if destData, err := os.ReadFile(destPath); err == nil {
