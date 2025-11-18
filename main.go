@@ -3,9 +3,14 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
+	"time"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
 	"gopkg.in/yaml.v3"
 )
 
@@ -68,44 +73,65 @@ func modifyJobForMakefile(sourceJob interface{}) {
 func commitAndPushWorkflow(destPath string) error {
 	fmt.Println("Committing and pushing workflow changes...")
 
-	// Configure git user
-	cmd := exec.Command("git", "config", "user.name", "github-actions[bot]")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to configure git user.name: %w", err)
+	// Get required environment variables
+	githubToken := os.Getenv("GITHUB_TOKEN")
+	githubRef := os.Getenv("GITHUB_REF")
+
+	if githubToken == "" || githubRef == "" {
+		return fmt.Errorf("required environment variables not set (GITHUB_TOKEN, GITHUB_REF)")
 	}
 
-	cmd = exec.Command("git", "config", "user.email", "github-actions[bot]@users.noreply.github.com")
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to configure git user.email: %w", err)
+	// Open the repository
+	repo, err := git.PlainOpen(".")
+	if err != nil {
+		return fmt.Errorf("failed to open repository: %w", err)
+	}
+
+	// Get the worktree
+	w, err := repo.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
 	// Add the workflow file
-	cmd = exec.Command("git", "add", destPath)
-	if err := cmd.Run(); err != nil {
+	_, err = w.Add(destPath)
+	if err != nil {
 		return fmt.Errorf("failed to add workflow file: %w", err)
 	}
 
 	// Commit the changes
-	cmd = exec.Command("git", "commit", "-m", "chore: update workflow")
-	if err := cmd.Run(); err != nil {
+	commit, err := w.Commit("chore: update workflow", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "github-actions[bot]",
+			Email: "github-actions[bot]@users.noreply.github.com",
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
 		return fmt.Errorf("failed to commit: %w", err)
 	}
 
-	// Push the changes
-	githubRepo := os.Getenv("GITHUB_REPOSITORY")
-	githubRef := os.Getenv("GITHUB_REF")
-	githubToken := os.Getenv("GITHUB_TOKEN")
-
-	if githubRepo == "" || githubRef == "" || githubToken == "" {
-		return fmt.Errorf("required environment variables not set (GITHUB_REPOSITORY, GITHUB_REF, GITHUB_TOKEN)")
-	}
+	fmt.Printf("Committed changes: %s\n", commit.String())
 
 	// Extract branch name from GITHUB_REF (refs/heads/main -> main)
-	branch := strings.TrimPrefix(githubRef, "refs/heads/")
-	pushURL := fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", githubToken, githubRepo)
+	refSpec := strings.TrimPrefix(githubRef, "refs/heads/")
+	if refSpec == "" {
+		return fmt.Errorf("unsupported GITHUB_REF value %q: expected refs/heads/<branch>", githubRef)
+	}
+	branchRef := plumbing.ReferenceName(fmt.Sprintf("refs/heads/%s", refSpec))
 
-	cmd = exec.Command("git", "push", pushURL, fmt.Sprintf("HEAD:%s", branch))
-	if err := cmd.Run(); err != nil {
+	// Push the changes
+	err = repo.Push(&git.PushOptions{
+		RemoteName: "origin",
+		RefSpecs: []config.RefSpec{
+			config.RefSpec(fmt.Sprintf("+%s:%s", branchRef, branchRef)),
+		},
+		Auth: &http.BasicAuth{
+			Username: "x-access-token",
+			Password: githubToken,
+		},
+	})
+	if err != nil {
 		return fmt.Errorf("failed to push: %w", err)
 	}
 
