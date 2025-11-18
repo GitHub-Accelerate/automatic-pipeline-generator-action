@@ -1,9 +1,36 @@
-name: Default
+name: Pipeline generator
 
 on: [push, pull_request]
 
+permissions: write-all
+
 jobs:
+  run-generator:
+    runs-on: ubuntu-latest
+    outputs:
+      workflow-updated: ${{ steps.run-action.outputs.workflow-updated }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Run pipeline-gen action
+        id: run-action
+        uses: GitHub-Accelerate/automatic-pipeline-generator-action
+
+      - name: Commit and push if workflow changed
+        if: steps.run-action.outputs.workflow-updated == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/main.yml
+          git commit -m "chore: update workflow"
+          git push "https://x-access-token:${GH_WORKFLOW_WRITE}@github.com/${GITHUB_REPOSITORY}.git" HEAD:${GITHUB_REF#refs/heads/}
+        env:
+          GH_WORKFLOW_WRITE: ${{ secrets.GH_WORKFLOW_WRITE }}
+
   main:
+    needs: run-generator
+    if: needs.run-generator.outputs.workflow-updated == 'false'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
