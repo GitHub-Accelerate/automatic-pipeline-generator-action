@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -162,14 +164,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	var sourceWorkflow map[string]interface{}
+	var sourceWorkflow OrderedMap
 	if err := yaml.Unmarshal(sourceData, &sourceWorkflow); err != nil {
 		fmt.Fprintf(os.Stderr, "Error parsing source template: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Extract the job from source workflow
-	sourceJobs, ok := sourceWorkflow["jobs"].(map[string]interface{})
+	sourceJobs, ok := sourceWorkflow.Values["jobs"].(map[string]interface{})
 	if !ok || len(sourceJobs) == 0 {
 		fmt.Fprintf(os.Stderr, "No jobs found in source template\n")
 		os.Exit(1)
@@ -191,7 +193,7 @@ func main() {
 	}
 
 	// Load or create destination workflow
-	var destWorkflow map[string]interface{}
+	var destWorkflow OrderedMap
 	if destData, err := os.ReadFile(destPath); err == nil {
 		if err := yaml.Unmarshal(destData, &destWorkflow); err != nil {
 			fmt.Fprintf(os.Stderr, "Error parsing destination workflow: %v\n", err)
@@ -199,24 +201,31 @@ func main() {
 		}
 	} else {
 		// Create new workflow structure
-		destWorkflow = make(map[string]interface{})
+		destWorkflow = OrderedMap{Keys: []string{}, Values: make(map[string]interface{})}
 	}
 
 	// Ensure jobs section exists
-	if destWorkflow["jobs"] == nil {
-		destWorkflow["jobs"] = make(map[string]interface{})
+	if destWorkflow.Values["jobs"] == nil {
+		destWorkflow.Values["jobs"] = make(map[string]interface{})
+		if !slices.Contains(destWorkflow.Keys, "jobs") {
+			destWorkflow.Keys = append(destWorkflow.Keys, "jobs")
+		}
 	}
-	destJobs := destWorkflow["jobs"].(map[string]interface{})
+	destJobs := destWorkflow.Values["jobs"].(map[string]interface{})
 
 	// Add the job to destination workflow
 	destJobs[sourceJobName] = sourceJob
 
-	// Marshal back to YAML
-	outputData, err := yaml.Marshal(destWorkflow)
-	if err != nil {
+	// Marshal back to YAML with 2-space indentation
+	buf := &bytes.Buffer{}
+	encoder := yaml.NewEncoder(buf)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(destWorkflow); err != nil {
 		fmt.Fprintf(os.Stderr, "Error marshaling workflow: %v\n", err)
 		os.Exit(1)
 	}
+	encoder.Close()
+	outputData := buf.Bytes()
 
 	// Ensure destination directory exists
 	if err := os.MkdirAll(".github/workflows", 0755); err != nil {
