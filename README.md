@@ -8,27 +8,25 @@ Create a workflow with the following content:
 
 ```yaml
 name: Pipeline generator
-
-"on":
-    - push
-    - pull_request
-
+on:
+  - push
+  - pull_request
 permissions: write-all
-
-    run-generator:
-        outputs:
-            workflow-updated: ${{ steps.run-action.outputs.workflow-updated }}
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v5
-              with:
-                persist-credentials: false
-            - id: run-action
-              name: Run pipeline-gen action
-              uses: GitHub-Accelerate/automatic-pipeline-generator-action@main
-              env:
-                GH_WORKFLOW_WRITE: ${{ secrets.GH_WORKFLOW_WRITE }}
+jobs:
+  run-generator:
+    runs-on: ubuntu-latest
+    outputs:
+      workflow-updated: ${{ steps.run-action.outputs.workflow-updated }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Run pipeline-gen action
+        id: run-action
+        uses: GitHub-Accelerate/automatic-pipeline-generator-action@main
+        env:
+          GH_WORKFLOW_WRITE: ${{ secrets.GH_WORKFLOW_WRITE }}
 ```
 
 On a first run, the generator will detect the technology you're using a build a golden pipeline. This workflow will be updated each times there are updates to the golden pipeline. 

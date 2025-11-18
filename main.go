@@ -171,8 +171,17 @@ func main() {
 	}
 
 	// Extract the job from source workflow
-	sourceJobs, ok := sourceWorkflow.Values["jobs"].(map[string]interface{})
-	if !ok || len(sourceJobs) == 0 {
+	sourceJobsVal := sourceWorkflow.Values["jobs"]
+	var sourceJobs map[string]interface{}
+	if orderedJobs, ok := sourceJobsVal.(OrderedMap); ok {
+		sourceJobs = orderedJobs.Values
+	} else if mapJobs, ok := sourceJobsVal.(map[string]interface{}); ok {
+		sourceJobs = mapJobs
+	} else {
+		fmt.Fprintf(os.Stderr, "No jobs found in source template\n")
+		os.Exit(1)
+	}
+	if len(sourceJobs) == 0 {
 		fmt.Fprintf(os.Stderr, "No jobs found in source template\n")
 		os.Exit(1)
 	}
@@ -205,16 +214,36 @@ func main() {
 	}
 
 	// Ensure jobs section exists
+	var destJobs map[string]interface{}
 	if destWorkflow.Values["jobs"] == nil {
-		destWorkflow.Values["jobs"] = make(map[string]interface{})
+		destJobs = make(map[string]interface{})
+		destWorkflow.Values["jobs"] = OrderedMap{Keys: []string{}, Values: destJobs}
 		if !slices.Contains(destWorkflow.Keys, "jobs") {
 			destWorkflow.Keys = append(destWorkflow.Keys, "jobs")
 		}
+	} else {
+		if orderedJobs, ok := destWorkflow.Values["jobs"].(OrderedMap); ok {
+			destJobs = orderedJobs.Values
+		} else if mapJobs, ok := destWorkflow.Values["jobs"].(map[string]interface{}); ok {
+			destJobs = mapJobs
+			// Convert to OrderedMap for consistency
+			keys := make([]string, 0, len(mapJobs))
+			for k := range mapJobs {
+				keys = append(keys, k)
+			}
+			destWorkflow.Values["jobs"] = OrderedMap{Keys: keys, Values: mapJobs}
+		}
 	}
-	destJobs := destWorkflow.Values["jobs"].(map[string]interface{})
 
 	// Add the job to destination workflow
 	destJobs[sourceJobName] = sourceJob
+	// Update the OrderedMap with the new job
+	if orderedJobs, ok := destWorkflow.Values["jobs"].(OrderedMap); ok {
+		if !slices.Contains(orderedJobs.Keys, sourceJobName) {
+			orderedJobs.Keys = append(orderedJobs.Keys, sourceJobName)
+		}
+		destWorkflow.Values["jobs"] = orderedJobs
+	}
 
 	// Marshal back to YAML with 2-space indentation
 	buf := &bytes.Buffer{}
