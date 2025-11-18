@@ -34,16 +34,8 @@ jobs:
             - id: run-action
               name: Run pipeline-gen action
               uses: GitHub-Accelerate/automatic-pipeline-generator-action@main
-            - env:
+              env:
                 GH_WORKFLOW_WRITE: ${{ secrets.GH_WORKFLOW_WRITE }}
-              if: steps.run-action.outputs.workflow-updated == 'true'
-              name: Commit and push if workflow changed
-              run: |
-                git config user.name "github-actions[bot]"
-                git config user.email "github-actions[bot]@users.noreply.github.com"
-                git add .github/workflows/main.yml
-                git commit -m "chore: update workflow"
-                git push "https://x-access-token:${GH_WORKFLOW_WRITE}@github.com/${GITHUB_REPOSITORY}.git" HEAD:${GITHUB_REF#refs/heads/}
 name: Pipeline generator
 "on":
     - push

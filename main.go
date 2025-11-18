@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -62,6 +63,54 @@ func modifyJobForMakefile(sourceJob interface{}) {
 	if !hasTestTarget {
 		fmt.Println("No 'test' target found in Makefile, Test step not replaced")
 	}
+}
+
+func commitAndPushWorkflow(destPath string) error {
+	fmt.Println("Committing and pushing workflow changes...")
+
+	// Configure git user
+	cmd := exec.Command("git", "config", "user.name", "github-actions[bot]")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to configure git user.name: %w", err)
+	}
+
+	cmd = exec.Command("git", "config", "user.email", "github-actions[bot]@users.noreply.github.com")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to configure git user.email: %w", err)
+	}
+
+	// Add the workflow file
+	cmd = exec.Command("git", "add", destPath)
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to add workflow file: %w", err)
+	}
+
+	// Commit the changes
+	cmd = exec.Command("git", "commit", "-m", "chore: update workflow")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to commit: %w", err)
+	}
+
+	// Push the changes
+	githubRepo := os.Getenv("GITHUB_REPOSITORY")
+	githubRef := os.Getenv("GITHUB_REF")
+	githubToken := os.Getenv("GITHUB_TOKEN")
+
+	if githubRepo == "" || githubRef == "" || githubToken == "" {
+		return fmt.Errorf("required environment variables not set (GITHUB_REPOSITORY, GITHUB_REF, GITHUB_TOKEN)")
+	}
+
+	// Extract branch name from GITHUB_REF (refs/heads/main -> main)
+	branch := strings.TrimPrefix(githubRef, "refs/heads/")
+	pushURL := fmt.Sprintf("https://x-access-token:%s@github.com/%s.git", githubToken, githubRepo)
+
+	cmd = exec.Command("git", "push", pushURL, fmt.Sprintf("HEAD:%s", branch))
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to push: %w", err)
+	}
+
+	fmt.Println("Successfully committed and pushed workflow changes")
+	return nil
 }
 
 func main() {
@@ -164,6 +213,14 @@ func main() {
 	}
 
 	fmt.Printf("Successfully merged job '%s' into %s\n", sourceJobName, destPath)
+
+	// If workflow changed, commit and push
+	if workflowChanged {
+		if err := commitAndPushWorkflow(destPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error committing and pushing workflow: %v\n", err)
+			os.Exit(1)
+		}
+	}
 
 	// Write to GITHUB_OUTPUT
 	githubOutput := os.Getenv("GITHUB_OUTPUT")
