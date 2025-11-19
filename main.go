@@ -14,7 +14,7 @@ import (
 //go:embed templates/*
 var templatesFS embed.FS
 
-func modifyJobForMakefile(sourceJob interface{}) {
+func modifyJobForMakefile(job *OrderedMap) {
 	// Parse Makefile to check for build and test targets
 	makefileData, err := os.ReadFile("Makefile")
 	if err != nil {
@@ -43,19 +43,19 @@ func modifyJobForMakefile(sourceJob interface{}) {
 		return
 	}
 
+	jobMap := job.Values
+
 	// Modify the job steps to use make commands
-	if jobMap, ok := sourceJob.(map[string]interface{}); ok {
-		if steps, ok := jobMap["steps"].([]interface{}); ok {
-			for _, step := range steps {
-				if stepMap, ok := step.(map[string]interface{}); ok {
-					if name, ok := stepMap["name"].(string); ok {
-						if name == "Build" && hasBuildTarget {
-							stepMap["run"] = "make build"
-							fmt.Println("Replaced Build step with 'make build'")
-						} else if name == "Test" && hasTestTarget {
-							stepMap["run"] = "make test"
-							fmt.Println("Replaced Test step with 'make test'")
-						}
+	if steps, ok := jobMap["steps"].([]interface{}); ok {
+		for _, step := range steps {
+			if stepMap, ok := step.(map[string]interface{}); ok {
+				if name, ok := stepMap["name"].(string); ok {
+					if name == "Build" && hasBuildTarget {
+						stepMap["run"] = "make build"
+						fmt.Println("Replaced Build step with 'make build'")
+					} else if name == "Test" && hasTestTarget {
+						stepMap["run"] = "make test"
+						fmt.Println("Replaced Test step with 'make test'")
 					}
 				}
 			}
@@ -127,7 +127,11 @@ func main() {
 	// Check if Makefile exists and modify build/test steps accordingly
 	if _, err := os.Stat("Makefile"); err == nil {
 		fmt.Println("Found Makefile, updating build and test commands")
-		modifyJobForMakefile(sourceJob)
+		if orderedJob, ok := sourceJob.(OrderedMap); ok {
+			modifyJobForMakefile(&orderedJob)
+		} else {
+			fmt.Fprintf(os.Stderr, "Expected OrderedMap but got %T\n", sourceJob)
+		}
 	}
 
 	// Load or create destination workflow
