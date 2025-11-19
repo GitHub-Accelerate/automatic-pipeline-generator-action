@@ -38,6 +38,8 @@ On a first run, the generator will detect the technology you're using a build a 
 - Java (Maven)
 - C/C++
 - C#
+- PHP
+- Docker
 
 When you want the generator to build an unsupported technology such as Rust, you can use a `Dockerfile.build` and a `Dockerfile.test` which will replace those steps in the pipeline. 
 
@@ -53,5 +55,6 @@ This action supports the following parameters:
 |-----------------------|-----------------------------------------------------------------------------|--------------------------------|
 | packages_to_install   | Packages to install. Not recommended; use a Docker image with dependencies pre-installed. | libc6-dev libgl1-mesa-dev libsdl3-dev |
 | docker_image_to_use   | Docker image to use.                                                        | golang:1.25.3                  |
+| language_version      | Sets the language version for the setup action                              | 1.25.3                         |
 | item_to_build         | Override automatic detection for the item to build.                         | pom.xml, go.mod, Makefile, Dockerfile |
 
