@@ -49,7 +49,7 @@ Note: Filenames are case-sensitive.
 
 ## Customization 
 
-This action supports the following parameters:
+This action supports the following input parameters:
 
 | Parameter             | Description                                                                 | Example values                 |
 |-----------------------|-----------------------------------------------------------------------------|--------------------------------|
