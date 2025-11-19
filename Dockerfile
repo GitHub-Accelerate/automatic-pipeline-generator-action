@@ -1,7 +1,11 @@
-FROM golang:1.25.3
+FROM golang:1.25.3 AS builder
 
 WORKDIR /app
-
 COPY . .
+RUN go build -o pipeline-generator .
 
-ENTRYPOINT [ "go", "run", "." ]
+FROM golang:1.25.3
+
+COPY --from=builder /app/pipeline-generator /usr/local/bin/pipeline-generator
+
+ENTRYPOINT [ "pipeline-generator" ]
