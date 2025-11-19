@@ -17,8 +17,8 @@ jobs:
 
     - name: Build
       run: |
-        mkdir build
-        go build -v -o build ./...
+        mkdir ../build
+        go build -v -o ../build ./...
 
     - name: Test
       run: go test -v ./...
