@@ -1,0 +1,54 @@
+name: Daily Tagging
+
+on:
+  schedule:
+    # Runs at 4:30 PM EST (9:30 PM UTC, accounting for EST = UTC-5)
+    # Note: GitHub Actions uses UTC time
+    - cron: '30 21 * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  create-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0  # Fetch all history to check for existing tags
+      
+      - name: Check and create tag
+        run: |
+          # Get the latest commit SHA
+          LATEST_COMMIT=$(git rev-parse HEAD)
+          echo "Latest commit: $LATEST_COMMIT"
+          
+          # Check if this commit already has a tag
+          EXISTING_TAG=$(git tag --points-at $LATEST_COMMIT)
+          
+          if [ -n "$EXISTING_TAG" ]; then
+            echo "Commit $LATEST_COMMIT already has tag(s): $EXISTING_TAG"
+            echo "Skipping tag creation."
+            exit 0
+          fi
+          
+          # Generate tag name in YYYY.MM.DD format
+          TAG_NAME="v$(date +%Y.%m.%d)"
+          echo "Creating tag: $TAG_NAME"
+          
+          # Check if tag already exists (even on a different commit)
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Tag $TAG_NAME already exists in the repository."
+            echo "Skipping tag creation to avoid conflicts."
+            exit 0
+          fi
+          
+          # Create and push the tag
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG_NAME" -m "Automated daily tag for $TAG_NAME"
+          git push origin "$TAG_NAME"
+          
+          echo "Successfully created and pushed tag: $TAG_NAME"
