@@ -30,8 +30,8 @@ jobs:
           go-version: 1.25.3
       - name: Build
         run: |
-          mkdir build
-          go build -v -o build ./...
+          mkdir ../build
+          go build -v -o ../build ./...
       - name: Test
         run: go test -v ./...
       - name: Package build folder
