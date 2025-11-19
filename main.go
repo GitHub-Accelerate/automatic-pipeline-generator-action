@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"embed"
 	"fmt"
 	"os"
 	"slices"
@@ -9,6 +10,9 @@ import (
 
 	"gopkg.in/yaml.v3"
 )
+
+//go:embed templates/*
+var templatesFS embed.FS
 
 func modifyJobForMakefile(sourceJob interface{}) {
 	// Parse Makefile to check for build and test targets
@@ -82,8 +86,8 @@ func main() {
 	sourcePath := "templates/go.yml"
 	destPath := ".github/workflows/main.yml"
 
-	// Load source template
-	sourceData, err := os.ReadFile(sourcePath)
+	// Load source template from embedded filesystem
+	sourceData, err := templatesFS.ReadFile(sourcePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading source template: %v\n", err)
 		os.Exit(1)
