@@ -8,9 +8,12 @@ import (
 )
 
 // detectGoProject checks if the current directory contains a Go project
-func detectGoProject() bool {
+func detectGoProject() (bool, string) {
 	_, err := os.Stat("go.mod")
-	return err == nil
+	if err == nil {
+		return true, "go.mod"
+	}
+	return false, ""
 }
 
 // loadGoJobTemplate loads and processes the Go job template

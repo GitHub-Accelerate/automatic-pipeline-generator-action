@@ -33,15 +33,15 @@ func main() {
 	var job *Job
 	var err error
 
-	if detectGoProject() {
-		fmt.Println("Detected Go project")
+	if detected, indicator := detectGoProject(); detected {
+		fmt.Printf("Detected Go project (indicator: %s)\n", indicator)
 		jobName, job, err = loadGoJobTemplate(packagesToInstall, fetchDepth)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
 		}
-	} else if detectCCppProject() {
-		fmt.Println("Detected C/C++ project")
+	} else if detected, indicator := detectCCppProject(); detected {
+		fmt.Printf("Detected C/C++ project (indicator: %s)\n", indicator)
 		jobName, job, err = loadCCppJobTemplate(packagesToInstall, fetchDepth)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -72,17 +72,23 @@ func main() {
 	// Build the final workflow
 	workflow := buildWorkflow(baseWorkflow, jobName, job)
 
-	// Write workflow to file
-	outputData, err := writeWorkflowOutput(&workflow, destPath)
+	// Generate output data first (before writing to file)
+	outputData, err := generateWorkflowData(&workflow)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Successfully merged job '%s' into %s\n", jobName, destPath)
-
-	// Check if workflow changed
+	// Check if workflow changed BEFORE writing
 	workflowChanged := checkWorkflowChanged(destPath, outputData)
+
+	// Write workflow to file
+	if err := writeWorkflowToFile(destPath, outputData); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Successfully merged job '%s' into %s\n", jobName, destPath)
 
 	// If workflow changed, commit and push
 	if workflowChanged {

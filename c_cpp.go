@@ -9,7 +9,7 @@ import (
 )
 
 // detectCCppProject checks if the current directory contains a C/C++ project
-func detectCCppProject() bool {
+func detectCCppProject() (bool, string) {
 	// Check for common C/C++ indicators
 	indicators := []string{
 		"CMakeLists.txt",
@@ -25,14 +25,14 @@ func detectCCppProject() bool {
 
 	for _, indicator := range indicators {
 		if _, err := os.Stat(indicator); err == nil {
-			return true
+			return true, indicator
 		}
 	}
 
 	// Check if directory contains .c or .cpp files
 	entries, err := os.ReadDir(".")
 	if err != nil {
-		return false
+		return false, ""
 	}
 
 	for _, entry := range entries {
@@ -42,11 +42,11 @@ func detectCCppProject() bool {
 		name := entry.Name()
 		if strings.HasSuffix(name, ".c") || strings.HasSuffix(name, ".cpp") ||
 			strings.HasSuffix(name, ".cc") || strings.HasSuffix(name, ".cxx") {
-			return true
+			return true, fmt.Sprintf("%s file", name)
 		}
 	}
 
-	return false
+	return false, ""
 }
 
 // loadCCppJobTemplate loads and processes the C/C++ job template
