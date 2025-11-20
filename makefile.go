@@ -38,12 +38,13 @@ func modifyJobForMakefile(job *Job) {
 
 	// Modify the job steps to use make commands
 	for _, step := range job.Steps {
-		if step.Name == "Build" && hasBuildTarget {
+		stepNameLower := strings.ToLower(step.Name)
+		if strings.Contains(stepNameLower, "build") && hasBuildTarget {
 			step.Run = "make -j$(nproc) build"
-			fmt.Println("Replaced Build step with 'make build'")
-		} else if step.Name == "Test" && hasTestTarget {
+			fmt.Printf("Replaced '%s' step with 'make build'\n", step.Name)
+		} else if strings.Contains(stepNameLower, "test") && hasTestTarget {
 			step.Run = "make test"
-			fmt.Println("Replaced Test step with 'make test'")
+			fmt.Printf("Replaced '%s' step with 'make test'\n", step.Name)
 		}
 	}
 

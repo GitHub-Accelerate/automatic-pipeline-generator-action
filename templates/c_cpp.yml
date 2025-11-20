@@ -10,7 +10,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Build kernel
+      - name: Build
         run: |
           mkdir ../build
           gcc -Wall *.c -o ../build/myprogram
