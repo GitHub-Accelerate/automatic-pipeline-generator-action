@@ -82,3 +82,30 @@ func generatePackageInstallScript(packages []string) string {
 
 	return script.String()
 }
+
+// applyActionInputs adds the with parameters to the pipeline-gen action step
+func applyActionInputs(job *Job, packagesToInstall, fetchDepth string) {
+	if packagesToInstall == "" && fetchDepth == "" {
+		return
+	}
+
+	for _, step := range job.Steps {
+		// Find the pipeline-gen action step
+		if step.Uses != "" && strings.Contains(step.Uses, "automatic-pipeline-generator-action") {
+			if step.With == nil {
+				step.With = make(map[string]interface{})
+			}
+
+			// Only add parameters if they're not empty
+			if packagesToInstall != "" {
+				step.With["packages_to_install"] = packagesToInstall
+				fmt.Printf("Adding packages_to_install to action: %s\n", packagesToInstall)
+			}
+			if fetchDepth != "" {
+				step.With["fetch_depth"] = fetchDepth
+				fmt.Printf("Adding fetch_depth to action: %s\n", fetchDepth)
+			}
+			break
+		}
+	}
+}

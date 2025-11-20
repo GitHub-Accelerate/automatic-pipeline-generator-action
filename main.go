@@ -69,6 +69,11 @@ func main() {
 		applyFetchDepth(baseWorkflow.Jobs["run-generator"], fetchDepth)
 	}
 
+	// Apply input parameters to the run-generator job's action step
+	if baseWorkflow.Jobs["run-generator"] != nil {
+		applyActionInputs(baseWorkflow.Jobs["run-generator"], packagesToInstall, fetchDepth)
+	}
+
 	// Build the final workflow
 	workflow := buildWorkflow(baseWorkflow, jobName, job)
 
