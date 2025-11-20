@@ -1,11 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"embed"
 	"fmt"
 	"os"
-	"slices"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -14,7 +12,7 @@ import (
 //go:embed templates/*
 var templatesFS embed.FS
 
-func modifyJobForMakefile(job *OrderedMap) {
+func modifyJobForMakefile(job *Job) {
 	// Parse Makefile to check for build and test targets
 	makefileData, err := os.ReadFile("Makefile")
 	if err != nil {
@@ -43,22 +41,14 @@ func modifyJobForMakefile(job *OrderedMap) {
 		return
 	}
 
-	jobMap := job.Values
-
 	// Modify the job steps to use make commands
-	if steps, ok := jobMap["steps"].([]interface{}); ok {
-		for _, step := range steps {
-			if stepMap, ok := step.(map[string]interface{}); ok {
-				if name, ok := stepMap["name"].(string); ok {
-					if name == "Build" && hasBuildTarget {
-						stepMap["run"] = "make build"
-						fmt.Println("Replaced Build step with 'make build'")
-					} else if name == "Test" && hasTestTarget {
-						stepMap["run"] = "make test"
-						fmt.Println("Replaced Test step with 'make test'")
-					}
-				}
-			}
+	for _, step := range job.Steps {
+		if step.Name == "Build" && hasBuildTarget {
+			step.Run = "make build"
+			fmt.Println("Replaced Build step with 'make build'")
+		} else if step.Name == "Test" && hasTestTarget {
+			step.Run = "make test"
+			fmt.Println("Replaced Test step with 'make test'")
 		}
 	}
 
@@ -93,49 +83,34 @@ func main() {
 		os.Exit(1)
 	}
 
-	var sourceWorkflow OrderedMap
+	var sourceWorkflow GitHubWorkflow
 	if err := yaml.Unmarshal(sourceData, &sourceWorkflow); err != nil {
 		fmt.Fprintf(os.Stderr, "Error parsing source template: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Extract the job from source workflow
-	sourceJobsVal := sourceWorkflow.Values["jobs"]
-	var sourceJobs map[string]interface{}
-	if orderedJobs, ok := sourceJobsVal.(OrderedMap); ok {
-		sourceJobs = orderedJobs.Values
-	} else if mapJobs, ok := sourceJobsVal.(map[string]interface{}); ok {
-		sourceJobs = mapJobs
-	} else {
-		fmt.Fprintf(os.Stderr, "No jobs found in source template\n")
-		os.Exit(1)
-	}
-	if len(sourceJobs) == 0 {
-		fmt.Fprintf(os.Stderr, "No jobs found in source template\n")
-		os.Exit(1)
-	}
-
-	// Get the first (and should be only) job
+	// Get the first (and should be only) job from source
 	var sourceJobName string
-	var sourceJob interface{}
-	for name, job := range sourceJobs {
+	var sourceJob *Job
+	for name, job := range sourceWorkflow.Jobs {
 		sourceJobName = name
 		sourceJob = job
 		break
 	}
 
+	if sourceJob == nil {
+		fmt.Fprintf(os.Stderr, "No jobs found in source template\n")
+		os.Exit(1)
+	}
+
 	// Check if Makefile exists and modify build/test steps accordingly
 	if _, err := os.Stat("Makefile"); err == nil {
 		fmt.Println("Found Makefile, updating build and test commands")
-		if orderedJob, ok := sourceJob.(OrderedMap); ok {
-			modifyJobForMakefile(&orderedJob)
-		} else {
-			fmt.Fprintf(os.Stderr, "Expected OrderedMap but got %T\n", sourceJob)
-		}
+		modifyJobForMakefile(sourceJob)
 	}
 
 	// Load or create destination workflow
-	var destWorkflow OrderedMap
+	var destWorkflow GitHubWorkflow
 	if destData, err := os.ReadFile(destPath); err == nil {
 		if err := yaml.Unmarshal(destData, &destWorkflow); err != nil {
 			fmt.Fprintf(os.Stderr, "Error parsing destination workflow: %v\n", err)
@@ -143,51 +118,25 @@ func main() {
 		}
 	} else {
 		// Create new workflow structure
-		destWorkflow = OrderedMap{Keys: []string{}, Values: make(map[string]interface{})}
+		destWorkflow = GitHubWorkflow{
+			Jobs: make(map[string]*Job),
+		}
 	}
 
-	// Ensure jobs section exists
-	var destJobs map[string]interface{}
-	if destWorkflow.Values["jobs"] == nil {
-		destJobs = make(map[string]interface{})
-		destWorkflow.Values["jobs"] = OrderedMap{Keys: []string{}, Values: destJobs}
-		if !slices.Contains(destWorkflow.Keys, "jobs") {
-			destWorkflow.Keys = append(destWorkflow.Keys, "jobs")
-		}
-	} else {
-		if orderedJobs, ok := destWorkflow.Values["jobs"].(OrderedMap); ok {
-			destJobs = orderedJobs.Values
-		} else if mapJobs, ok := destWorkflow.Values["jobs"].(map[string]interface{}); ok {
-			destJobs = mapJobs
-			// Convert to OrderedMap for consistency
-			keys := make([]string, 0, len(mapJobs))
-			for k := range mapJobs {
-				keys = append(keys, k)
-			}
-			destWorkflow.Values["jobs"] = OrderedMap{Keys: keys, Values: mapJobs}
-		}
+	// Ensure jobs map exists
+	if destWorkflow.Jobs == nil {
+		destWorkflow.Jobs = make(map[string]*Job)
 	}
 
 	// Add the job to destination workflow
-	destJobs[sourceJobName] = sourceJob
-	// Update the OrderedMap with the new job
-	if orderedJobs, ok := destWorkflow.Values["jobs"].(OrderedMap); ok {
-		if !slices.Contains(orderedJobs.Keys, sourceJobName) {
-			orderedJobs.Keys = append(orderedJobs.Keys, sourceJobName)
-		}
-		destWorkflow.Values["jobs"] = orderedJobs
-	}
+	destWorkflow.Jobs[sourceJobName] = sourceJob
 
-	// Marshal back to YAML with 2-space indentation
-	buf := &bytes.Buffer{}
-	encoder := yaml.NewEncoder(buf)
-	encoder.SetIndent(2)
-	if err := encoder.Encode(destWorkflow); err != nil {
+	// Marshal back to YAML
+	outputData, err := yaml.Marshal(&destWorkflow)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error marshaling workflow: %v\n", err)
 		os.Exit(1)
 	}
-	encoder.Close()
-	outputData := buf.Bytes()
 
 	// Ensure destination directory exists
 	if err := os.MkdirAll(".github/workflows", 0755); err != nil {
