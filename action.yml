@@ -7,16 +7,24 @@ inputs:
   docker_image_to_use:
     description: 'Docker image to use'
     required: false
+  language_version:
+    description: 'Sets the language version for the setup action'
+    required: false
   item_to_build:
     description: 'File to use when detecting the tech to build'
+    required: false
+  fetch_depth:
+    description: 'Sets the fetch depth on the Checkout action'
     required: false
 runs:
   using: 'docker'
   image: 'Dockerfile'
   args:
-    - ${{ inputs.packages_to_install-file }}
+    - ${{ inputs.packages_to_install }}
     - ${{ inputs.docker_image_to_use }}
+    - ${{ inputs.language_version }}
     - ${{ inputs.item_to_build }}
+    - ${{ inputs.fetch_depth }}
 branding:
   icon: 'git-commit'
   color: 'green'

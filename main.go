@@ -15,14 +15,34 @@ func main() {
 	fmt.Printf("Number of arguments: %d\n", len(os.Args))
 	fmt.Println("Arguments:", os.Args)
 
+	// Parse command line arguments (from action inputs)
+	var packagesToInstall, fetchDepth string
+
+	if len(os.Args) > 1 {
+		packagesToInstall = os.Args[1]
+	}
+	// Skip dockerImageToUse (os.Args[2]) - not yet implemented
+	// Skip langageVersion (os.Args[3]) - not yet implemented
+	// Skip itemToBuild (os.Args[4) - not yet implemented
+	if len(os.Args) > 5 {
+		fetchDepth = os.Args[5]
+	}
+
 	// Detect project language and get job template
 	var jobName string
 	var job *Job
 	var err error
 
 	if detectGoProject() {
-		fmt.Println("Found go.mod file")
-		jobName, job, err = loadGoJobTemplate()
+		fmt.Println("Detected Go project")
+		jobName, job, err = loadGoJobTemplate(packagesToInstall, fetchDepth)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
+	} else if detectCCppProject() {
+		fmt.Println("Detected C/C++ project")
+		jobName, job, err = loadCCppJobTemplate(packagesToInstall, fetchDepth)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)

@@ -14,7 +14,7 @@ func detectGoProject() bool {
 }
 
 // loadGoJobTemplate loads and processes the Go job template
-func loadGoJobTemplate() (string, *Job, error) {
+func loadGoJobTemplate(packagesToInstall, fetchDepth string) (string, *Job, error) {
 	jobTemplatePath := "templates/go.yml"
 
 	// Load job template from embedded filesystem
@@ -40,6 +40,10 @@ func loadGoJobTemplate() (string, *Job, error) {
 	if job == nil {
 		return "", nil, fmt.Errorf("no jobs found in job template")
 	}
+
+	// Apply customizations
+	applyFetchDepth(job, fetchDepth)
+	applyPackagesToInstall(job, packagesToInstall)
 
 	// Check if Makefile exists and modify build/test steps accordingly
 	if _, err := os.Stat("Makefile"); err == nil {
