@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"embed"
 	"fmt"
 	"os"
@@ -128,15 +129,23 @@ func main() {
 		destWorkflow.Jobs = make(map[string]*Job)
 	}
 
-	// Add the job to destination workflow
+	// Add the job to destination workflow if it doesn't already exist
+	if _, exists := destWorkflow.Jobs[sourceJobName]; !exists {
+		// Add to job order tracking
+		destWorkflow.jobOrder = append(destWorkflow.jobOrder, sourceJobName)
+	}
 	destWorkflow.Jobs[sourceJobName] = sourceJob
 
-	// Marshal back to YAML
-	outputData, err := yaml.Marshal(&destWorkflow)
-	if err != nil {
+	// Marshal back to YAML with 2-space indentation
+	buf := &bytes.Buffer{}
+	encoder := yaml.NewEncoder(buf)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(&destWorkflow); err != nil {
 		fmt.Fprintf(os.Stderr, "Error marshaling workflow: %v\n", err)
 		os.Exit(1)
 	}
+	encoder.Close()
+	outputData := buf.Bytes()
 
 	// Ensure destination directory exists
 	if err := os.MkdirAll(".github/workflows", 0755); err != nil {
