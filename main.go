@@ -63,6 +63,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Apply fetch_depth to the run-generator job if specified
+	if fetchDepth != "" && baseWorkflow.Jobs["run-generator"] != nil {
+		fmt.Println("Applying fetch depth to run-generator job")
+		applyFetchDepth(baseWorkflow.Jobs["run-generator"], fetchDepth)
+	}
+
 	// Build the final workflow
 	workflow := buildWorkflow(baseWorkflow, jobName, job)
 
