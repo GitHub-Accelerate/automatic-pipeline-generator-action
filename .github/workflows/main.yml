@@ -12,7 +12,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          persist-credentials: "false"
+          persist-credentials: false
       - name: Run pipeline-gen action
         id: run-action
         uses: GitHub-Accelerate/automatic-pipeline-generator-action@main
