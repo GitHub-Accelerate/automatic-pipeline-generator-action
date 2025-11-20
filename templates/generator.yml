@@ -1,0 +1,20 @@
+name: Pipeline generator
+on:
+  - push
+  - pull_request
+permissions: write-all
+jobs:
+  run-generator:
+    runs-on: ubuntu-latest
+    outputs:
+      workflow-updated: ${{ steps.run-action.outputs.workflow-updated }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Run pipeline-gen action
+        id: run-action
+        uses: GitHub-Accelerate/automatic-pipeline-generator-action@main
+        env:
+          GH_WORKFLOW_WRITE: ${{ secrets.GH_WORKFLOW_WRITE }}

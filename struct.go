@@ -29,13 +29,13 @@ type Job struct {
 
 // Step represents a single step in a job
 type Step struct {
-	Name string            `yaml:"name,omitempty"`
-	Uses string            `yaml:"uses,omitempty"`
-	Run  string            `yaml:"run,omitempty"`
-	With map[string]string `yaml:"with,omitempty"`
-	Env  map[string]string `yaml:"env,omitempty"`
-	If   string            `yaml:"if,omitempty"`
-	ID   string            `yaml:"id,omitempty"`
+	Name string                 `yaml:"name,omitempty"`
+	Uses string                 `yaml:"uses,omitempty"`
+	Run  string                 `yaml:"run,omitempty"`
+	With map[string]interface{} `yaml:"with,omitempty"`
+	Env  map[string]string      `yaml:"env,omitempty"`
+	If   string                 `yaml:"if,omitempty"`
+	ID   string                 `yaml:"id,omitempty"`
 }
 
 // Strategy represents job strategy configuration

@@ -73,34 +73,48 @@ func main() {
 
 	fmt.Println("Found go.mod file")
 
-	// Define source and destination paths
-	sourcePath := "templates/go.yml"
+	// Define paths
+	generatorTemplatePath := "templates/generator.yml"
+	jobTemplatePath := "templates/go.yml"
 	destPath := ".github/workflows/main.yml"
 
-	// Load source template from embedded filesystem
-	sourceData, err := templatesFS.ReadFile(sourcePath)
+	// Load the base generator template (contains workflow metadata and run-generator job)
+	generatorData, err := templatesFS.ReadFile(generatorTemplatePath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading source template: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error reading generator template: %v\n", err)
 		os.Exit(1)
 	}
 
-	var sourceWorkflow GitHubWorkflow
-	if err := yaml.Unmarshal(sourceData, &sourceWorkflow); err != nil {
-		fmt.Fprintf(os.Stderr, "Error parsing source template: %v\n", err)
+	var baseWorkflow GitHubWorkflow
+	if err := yaml.Unmarshal(generatorData, &baseWorkflow); err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing generator template: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Get the first (and should be only) job from source
+	// Load job template from embedded filesystem
+	jobData, err := templatesFS.ReadFile(jobTemplatePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading job template: %v\n", err)
+		os.Exit(1)
+	}
+
+	var jobWorkflow GitHubWorkflow
+	if err := yaml.Unmarshal(jobData, &jobWorkflow); err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing job template: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Get the job from job template
 	var sourceJobName string
 	var sourceJob *Job
-	for name, job := range sourceWorkflow.Jobs {
+	for name, job := range jobWorkflow.Jobs {
 		sourceJobName = name
 		sourceJob = job
 		break
 	}
 
 	if sourceJob == nil {
-		fmt.Fprintf(os.Stderr, "No jobs found in source template\n")
+		fmt.Fprintf(os.Stderr, "No jobs found in job template\n")
 		os.Exit(1)
 	}
 
@@ -110,31 +124,35 @@ func main() {
 		modifyJobForMakefile(sourceJob)
 	}
 
-	// Load or create destination workflow
-	var destWorkflow GitHubWorkflow
-	if destData, err := os.ReadFile(destPath); err == nil {
-		if err := yaml.Unmarshal(destData, &destWorkflow); err != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing destination workflow: %v\n", err)
-			os.Exit(1)
-		}
-	} else {
-		// Create new workflow structure
-		destWorkflow = GitHubWorkflow{
-			Jobs: make(map[string]*Job),
-		}
-	}
+	// Start with the base workflow structure (enforces name, on, permissions, run-generator job)
+	destWorkflow := baseWorkflow
 
 	// Ensure jobs map exists
 	if destWorkflow.Jobs == nil {
 		destWorkflow.Jobs = make(map[string]*Job)
 	}
 
-	// Add the job to destination workflow if it doesn't already exist
-	if _, exists := destWorkflow.Jobs[sourceJobName]; !exists {
-		// Add to job order tracking
-		destWorkflow.jobOrder = append(destWorkflow.jobOrder, sourceJobName)
+	// Ensure run-generator is first in job order
+	if len(destWorkflow.jobOrder) == 0 || destWorkflow.jobOrder[0] != "run-generator" {
+		// Reset job order with run-generator first
+		destWorkflow.jobOrder = []string{"run-generator"}
 	}
-	destWorkflow.Jobs[sourceJobName] = sourceJob
+
+	// Add the source job after run-generator
+	if sourceJobName != "run-generator" {
+		// Check if job already exists in order
+		jobExists := false
+		for _, name := range destWorkflow.jobOrder {
+			if name == sourceJobName {
+				jobExists = true
+				break
+			}
+		}
+		if !jobExists {
+			destWorkflow.jobOrder = append(destWorkflow.jobOrder, sourceJobName)
+		}
+		destWorkflow.Jobs[sourceJobName] = sourceJob
+	}
 
 	// Marshal back to YAML with 2-space indentation
 	buf := &bytes.Buffer{}
