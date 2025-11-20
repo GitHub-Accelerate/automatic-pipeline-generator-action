@@ -1,2 +1,5 @@
 test.sh
 *.code-workspace
+automatic-pipeline-generator-action
+pipeline-generator
+gitlab-runner/
