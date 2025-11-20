@@ -99,7 +99,7 @@ func modifyJobForMakefile(job *Job) {
 	// Modify the job steps to use make commands
 	for _, step := range job.Steps {
 		if step.Name == "Build" && hasBuildTarget {
-			step.Run = "make build"
+			step.Run = "make -j$(nproc) build"
 			fmt.Println("Replaced Build step with 'make build'")
 		} else if step.Name == "Test" && hasTestTarget {
 			step.Run = "make test"
