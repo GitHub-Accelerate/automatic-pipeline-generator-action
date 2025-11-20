@@ -37,14 +37,19 @@ func modifyJobForMakefile(job *Job) {
 	}
 
 	// Modify the job steps to use make commands
+	buildReplaced := false
+	testReplaced := false
 	for _, step := range job.Steps {
 		stepNameLower := strings.ToLower(step.Name)
-		if strings.Contains(stepNameLower, "build") && hasBuildTarget {
+		// Exact match for "build" or "test" step names
+		if !buildReplaced && hasBuildTarget && stepNameLower == "build" {
 			step.Run = "make -j$(nproc) build"
 			fmt.Printf("Replaced '%s' step with 'make build'\n", step.Name)
-		} else if strings.Contains(stepNameLower, "test") && hasTestTarget {
+			buildReplaced = true
+		} else if !testReplaced && hasTestTarget && stepNameLower == "test" {
 			step.Run = "make test"
 			fmt.Printf("Replaced '%s' step with 'make test'\n", step.Name)
+			testReplaced = true
 		}
 	}
 

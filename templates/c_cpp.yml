@@ -5,7 +5,8 @@ on: [push, pull_request]
 jobs:
   main:
     runs-on: ubuntu-latest
-
+    needs: run-generator
+    if: needs.run-generator.outputs.workflow-updated == 'false'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
