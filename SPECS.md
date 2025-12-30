@@ -6,8 +6,8 @@
 - The base generator workflow (`templates/generator.yml`) is merged with a technology-specific job before the combined definition is serialized to `.github/workflows/main.yml`.
 
 ## Project Detection
-- Detection follows a well-defined order to avoid ambiguous matches: Python → Go → Java (Maven) → Java (Gradle) → C/C++.
-- Each technology ships a `detect*Project` function that inspects sentinel files (`requirements.txt`, `pyproject.toml`, `go.mod`, `pom.xml`, `build.gradle*`, etc.).
+- Detection follows a well-defined order to avoid ambiguous matches: Python → Go → Java (Maven) → Java (Gradle) → C# → C/C++.
+- Each technology ships a `detect*Project` function that inspects sentinel files (`requirements.txt`, `pyproject.toml`, `go.mod`, `pom.xml`, `build.gradle*`, `.sln`, etc.).
 - Detection helpers return a boolean and a human-readable indicator to aid logging and traceability.
 
 ## Template Loading Pattern
@@ -41,6 +41,11 @@ This pattern keeps parsing, transformation, and specialization isolated per tech
   - Detects Gradle projects via wrapper scripts or build descriptors.
   - Promotes `./gradlew` usage when available, adding a permission fix-up step.
   - Runs build, test, PMD, and Checkstyle tasks, then packages `build/libs` artifacts.
+- C# support (`csharp.go` + `templates/csharp.yml`):
+  - Detects C# projects via `.sln` files at the repository root.
+  - Parses solution files to extract `.csproj` project paths.
+  - Uses `dotnet restore`, `dotnet build`, `dotnet test`, and `dotnet publish` commands.
+  - Publishes built artifacts from the `./publish` directory.
 
 ## Serialization and Persistence
 - `generateWorkflowData` leverages a YAML encoder with indentation control to preserve formatting.

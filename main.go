@@ -63,6 +63,13 @@ func main() {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
 		}
+	} else if detected, indicator := detectCSharpProject(); detected {
+		fmt.Printf("Detected C# project (indicator: %s)\n", indicator)
+		jobName, job, err = loadCSharpJobTemplate(packagesToInstall, fetchDepth, languageVersion)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
 	} else if detected, indicator := detectCCppProject(); detected {
 		fmt.Printf("Detected C/C++ project (indicator: %s)\n", indicator)
 		jobName, job, err = loadCCppJobTemplate(packagesToInstall, fetchDepth)
