@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -23,6 +24,128 @@ func applyFetchDepth(job *Job, fetchDepth string) {
 			break
 		}
 	}
+}
+
+// addTrivySecuritySteps adds Trivy security scanning steps to the job
+func addTrivySecuritySteps(job *Job) {
+	if job == nil {
+		return
+	}
+
+	// Always add secret scanning step
+	secretScanStep := &Step{
+		Name: "Scan for secrets with Trivy",
+		Uses: "aquasecurity/trivy-action@master",
+		With: map[string]interface{}{
+			"scan-type": "fs",
+			"scan-ref":  ".",
+			"scanners":  "secret",
+			"exit-code": "1",
+			"severity":  "CRITICAL,HIGH",
+			"format":    "sarif",
+			"output":    "trivy-secrets.sarif",
+		},
+	}
+
+	// Check if dependency scanning is applicable
+	dependencyScanStep := createTrivyDependencyScanStep()
+
+	// Insert security steps after checkout but before build steps
+	var newSteps []*Step
+	securityStepsInserted := false
+
+	for _, step := range job.Steps {
+		newSteps = append(newSteps, step)
+
+		// Insert after checkout step
+		if !securityStepsInserted && step.Uses != "" && strings.HasPrefix(step.Uses, "actions/checkout@") {
+			if dependencyScanStep != nil {
+				newSteps = append(newSteps, dependencyScanStep)
+				fmt.Println("Added Trivy dependency scanning step")
+			}
+			newSteps = append(newSteps, secretScanStep)
+			fmt.Println("Added Trivy secret scanning step")
+			securityStepsInserted = true
+		}
+	}
+
+	job.Steps = newSteps
+}
+
+// createTrivyDependencyScanStep creates a dependency scan step if supported files exist
+func createTrivyDependencyScanStep() *Step {
+	// Files that Trivy can scan for dependencies
+	supportedFiles := []string{
+		"package.json",       // npm
+		"package-lock.json",  // npm
+		"yarn.lock",          // yarn
+		"pnpm-lock.yaml",     // pnpm
+		"requirements.txt",   // pip
+		"poetry.lock",        // poetry
+		"Pipfile.lock",       // pipenv
+		"go.mod",             // go
+		"go.sum",             // go
+		"pom.xml",            // maven
+		"build.gradle",       // gradle
+		"build.gradle.kts",   // gradle kotlin
+		"*.csproj",           // nuget
+		"packages.lock.json", // nuget
+		"Gemfile.lock",       // bundler
+		"Cargo.lock",         // rust
+		"composer.lock",      // composer
+		"mix.lock",           // hex
+		"pubspec.lock",       // pub
+	}
+
+	// Check if any supported file exists
+	for _, file := range supportedFiles {
+		if strings.Contains(file, "*") {
+			// Handle wildcard patterns
+			entries, err := os.ReadDir(".")
+			if err != nil {
+				continue
+			}
+			pattern := strings.TrimPrefix(file, "*")
+			for _, entry := range entries {
+				if !entry.IsDir() && strings.HasSuffix(entry.Name(), pattern) {
+					fmt.Printf("Found dependency file: %s\n", entry.Name())
+					return &Step{
+						Name: "Scan dependencies with Trivy",
+						Uses: "aquasecurity/trivy-action@master",
+						With: map[string]interface{}{
+							"scan-type": "fs",
+							"scan-ref":  ".",
+							"scanners":  "vuln",
+							"exit-code": "0",
+							"severity":  "CRITICAL,HIGH",
+							"format":    "sarif",
+							"output":    "trivy-results.sarif",
+						},
+					}
+				}
+			}
+		} else {
+			if _, err := os.Stat(file); err == nil {
+				fmt.Printf("Found dependency file: %s\n", file)
+				return &Step{
+					Name: "Scan dependencies with Trivy",
+					Uses: "aquasecurity/trivy-action@master",
+					With: map[string]interface{}{
+						"scan-type": "fs",
+						"scan-ref":  ".",
+						"scanners":  "vuln",
+						"exit-code": "0",
+						"severity":  "CRITICAL,HIGH",
+						"format":    "sarif",
+						"output":    "trivy-results.sarif",
+					},
+				}
+			}
+		}
+	}
+
+	fmt.Println("No supported dependency files found, skipping Trivy dependency scan")
+	return nil
 }
 
 // applyPackagesToInstall adds a step to install system packages

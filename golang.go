@@ -54,5 +54,7 @@ func loadGoJobTemplate(packagesToInstall, fetchDepth string) (string, *Job, erro
 		modifyJobForMakefile(job)
 	}
 
+	addTrivySecuritySteps(job)
+
 	return jobName, job, nil
 }

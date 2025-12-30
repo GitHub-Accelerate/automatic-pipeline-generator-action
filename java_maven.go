@@ -43,6 +43,7 @@ func loadJavaMavenJobTemplate(packagesToInstall, fetchDepth, languageVersion str
 	applyPackagesToInstall(job, packagesToInstall)
 	applyJavaLanguageVersion(job, languageVersion)
 	useMavenWrapper(job)
+	addTrivySecuritySteps(job)
 
 	return jobName, job, nil
 }

@@ -21,6 +21,7 @@ This pattern keeps parsing, transformation, and specialization isolated per tech
 ## Shared Customizations
 - `applyFetchDepth` injects `fetch-depth` on the checkout step when requested.
 - `applyPackagesToInstall` inserts a package installation step directly after the checkout step.
+- `addTrivySecuritySteps` adds Trivy security scanning for secrets (always) and dependencies (conditionally based on detected files).
 - `insertStepAfterCheckout` (in `java_common.go`) centralizes post-checkout step insertion to maintain execution order.
 - `replaceCommandPrefix` rewrites run command prefixes while preserving indentation and arguments, ensuring wrapper-aware replacements stay idempotent.
 

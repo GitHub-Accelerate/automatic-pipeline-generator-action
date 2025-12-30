@@ -87,5 +87,7 @@ func loadCCppJobTemplate(packagesToInstall, fetchDepth string) (string, *Job, er
 		modifyJobForMakefile(job)
 	}
 
+	addTrivySecuritySteps(job)
+
 	return jobName, job, nil
 }

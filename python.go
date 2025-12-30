@@ -57,6 +57,7 @@ func loadPythonJobTemplate(packagesToInstall, fetchDepth, languageVersion string
 	applyPackagesToInstall(job, packagesToInstall)
 	applyPythonLanguageVersion(job, languageVersion)
 	detectAndConfigurePythonTools(job)
+	addTrivySecuritySteps(job)
 
 	return jobName, job, nil
 }

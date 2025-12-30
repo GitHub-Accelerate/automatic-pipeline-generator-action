@@ -58,6 +58,7 @@ func loadCSharpJobTemplate(packagesToInstall, fetchDepth, languageVersion string
 	applyPackagesToInstall(job, packagesToInstall)
 	applyDotNetVersion(job, languageVersion)
 	configureCSharpProjects(job)
+	addTrivySecuritySteps(job)
 
 	return jobName, job, nil
 }

@@ -54,6 +54,7 @@ func loadJavaGradleJobTemplate(packagesToInstall, fetchDepth, languageVersion st
 	applyPackagesToInstall(job, packagesToInstall)
 	applyJavaLanguageVersion(job, languageVersion)
 	useGradleWrapper(job)
+	addTrivySecuritySteps(job)
 
 	return jobName, job, nil
 }
