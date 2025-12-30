@@ -35,7 +35,14 @@ func main() {
 	var job *Job
 	var err error
 
-	if detected, indicator := detectGoProject(); detected {
+	if detected, indicator := detectPythonProject(); detected {
+		fmt.Printf("Detected Python project (indicator: %s)\n", indicator)
+		jobName, job, err = loadPythonJobTemplate(packagesToInstall, fetchDepth, languageVersion)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
+	} else if detected, indicator := detectGoProject(); detected {
 		fmt.Printf("Detected Go project (indicator: %s)\n", indicator)
 		jobName, job, err = loadGoJobTemplate(packagesToInstall, fetchDepth)
 		if err != nil {

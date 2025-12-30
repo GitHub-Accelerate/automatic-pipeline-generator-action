@@ -6,8 +6,8 @@
 - The base generator workflow (`templates/generator.yml`) is merged with a technology-specific job before the combined definition is serialized to `.github/workflows/main.yml`.
 
 ## Project Detection
-- Detection follows a well-defined order to avoid ambiguous matches: Go → Java (Maven) → Java (Gradle) → C/C++.
-- Each technology ships a `detect*Project` function that inspects sentinel files (`go.mod`, `pom.xml`, `build.gradle*`, etc.).
+- Detection follows a well-defined order to avoid ambiguous matches: Python → Go → Java (Maven) → Java (Gradle) → C/C++.
+- Each technology ships a `detect*Project` function that inspects sentinel files (`requirements.txt`, `pyproject.toml`, `go.mod`, `pom.xml`, `build.gradle*`, etc.).
 - Detection helpers return a boolean and a human-readable indicator to aid logging and traceability.
 
 ## Template Loading Pattern
@@ -25,6 +25,14 @@ This pattern keeps parsing, transformation, and specialization isolated per tech
 - `replaceCommandPrefix` rewrites run command prefixes while preserving indentation and arguments, ensuring wrapper-aware replacements stay idempotent.
 
 ## Language-Specific Behavior
+- Python support (`python.go` + `templates/python.yml`):
+  - Detects Python projects via `requirements.txt`, `pyproject.toml`, `setup.py`, or `Pipfile`.
+  - Auto-detects Poetry (via `[tool.poetry]` in `pyproject.toml`) and switches to Poetry commands.
+  - Auto-detects uv (via `uv.lock`) and uses uv for faster package installation.
+  - Defaults to pip for standard Python projects.
+  - Always includes ruff for linting and code quality checks.
+  - Builds distributable packages using `python -m build` and uploads to artifacts.
+  - PyPI publishing can be added by including secrets (PYPI_TOKEN) and using the workflow's build artifacts.
 - Go and C/C++ loaders reuse `modifyJobForMakefile` to pivot build/test steps to Makefile targets when present.
 - Java Maven support (`java_maven.go` + `templates/java_maven.yml`):
   - Prefers `./mvnw` when the wrapper exists and ensures executable permissions are set.

@@ -34,9 +34,8 @@ On a first run, the generator will detect the technology you're using a build a 
 ## Supported technologies
 
 - Go
-- Python
-- Java (Maven)
-- Java (Gradle)
+- Python (pip, Poetry, uv)
+- Java (Maven, Gradle)
 - C/C++
 - C#
 - PHP
@@ -48,6 +47,10 @@ When the default build commands don't work, you can also use a `Makefile` which 
 
 Note: Filenames are case-sensitive. 
 
+**Python**: Auto-detects pip, Poetry, or uv package managers. Poetry projects (detected via `[tool.poetry]` in pyproject.toml) use `poetry install`. UV projects (detected via uv.lock) use `uv pip install`. Standard pip projects use `pip install -r requirements.txt`. All workflows include ruff for linting.
+
+**Java**: Uses the Temurin distribution via actions/setup-java.
+
 ## Customization 
 
 This action supports the following input parameters:
@@ -56,6 +59,6 @@ This action supports the following input parameters:
 |-----------------------|-----------------------------------------------------------------------------|--------------------------------|
 | packages_to_install   | Packages to install. Not recommended; use a Docker image with dependencies pre-installed. | libc6-dev libgl1-mesa-dev libsdl3-dev |
 | docker_image_to_use   | Docker image to use.                                                        | golang:1.25.3                  |
-| language_version      | Sets the language version for the setup action.                             | 1.25.3                         |
+| language_version      | Sets the language version for the setup action (Go, Java/Temurin, Python, etc.). | 1.25.3, 21, 3.12       |
 | item_to_build         | Override automatic detection for the item to build.                         | pom.xml, go.mod, Makefile, Dockerfile |
 | fetch_depth           | Sets the fetch depth on the Checkout action, helpful for large repos.       | 50                             |
