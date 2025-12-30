@@ -25,6 +25,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+      - name: Scan dependencies with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          exit-code: "0"
+          format: sarif
+          output: trivy-results.sarif
+          scan-ref: .
+          scan-type: fs
+          scanners: vuln
+          severity: CRITICAL,HIGH
+      - name: Scan for secrets with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          exit-code: "1"
+          format: sarif
+          output: trivy-secrets.sarif
+          scan-ref: .
+          scan-type: fs
+          scanners: secret
+          severity: CRITICAL,HIGH
       - uses: actions/setup-go@v6
         with:
           go-version: 1.25.3
