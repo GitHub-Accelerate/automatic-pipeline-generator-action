@@ -1,0 +1,37 @@
+name: Default
+
+on: [push, pull_request]
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    needs: run-generator
+    if: needs.run-generator.outputs.workflow-updated == 'false'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build
+        run: mvn -B -ntp package
+
+      - name: Test
+        run: mvn -B -ntp test
+
+      - name: PMD
+        run: mvn -B -ntp pmd:check
+
+      - name: Checkstyle
+        run: mvn -B -ntp checkstyle:check
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: build-artifact
+          path: target/*.jar

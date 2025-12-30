@@ -36,6 +36,7 @@ On a first run, the generator will detect the technology you're using a build a 
 - Go
 - Python
 - Java (Maven)
+- Java (Gradle)
 - C/C++
 - C#
 - PHP

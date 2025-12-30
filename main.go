@@ -16,13 +16,15 @@ func main() {
 	fmt.Println("Arguments:", os.Args)
 
 	// Parse command line arguments (from action inputs)
-	var packagesToInstall, fetchDepth string
+	var packagesToInstall, languageVersion, fetchDepth string
 
 	if len(os.Args) > 1 {
 		packagesToInstall = os.Args[1]
 	}
 	// Skip dockerImageToUse (os.Args[2]) - not yet implemented
-	// Skip langageVersion (os.Args[3]) - not yet implemented
+	if len(os.Args) > 3 {
+		languageVersion = os.Args[3]
+	}
 	// Skip itemToBuild (os.Args[4) - not yet implemented
 	if len(os.Args) > 5 {
 		fetchDepth = os.Args[5]
@@ -36,6 +38,20 @@ func main() {
 	if detected, indicator := detectGoProject(); detected {
 		fmt.Printf("Detected Go project (indicator: %s)\n", indicator)
 		jobName, job, err = loadGoJobTemplate(packagesToInstall, fetchDepth)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
+	} else if detected, indicator := detectJavaMavenProject(); detected {
+		fmt.Printf("Detected Java Maven project (indicator: %s)\n", indicator)
+		jobName, job, err = loadJavaMavenJobTemplate(packagesToInstall, fetchDepth, languageVersion)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
+			os.Exit(1)
+		}
+	} else if detected, indicator := detectJavaGradleProject(); detected {
+		fmt.Printf("Detected Java Gradle project (indicator: %s)\n", indicator)
+		jobName, job, err = loadJavaGradleJobTemplate(packagesToInstall, fetchDepth, languageVersion)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "%v\n", err)
 			os.Exit(1)
