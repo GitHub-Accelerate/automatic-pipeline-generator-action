@@ -111,7 +111,7 @@ func createTrivyDependencyScanStep() *Step {
 					fmt.Printf("Found dependency file: %s\n", entry.Name())
 					return &Step{
 						Name: "Scan dependencies with Trivy",
-						Uses: "aquasecurity/trivy-action@0.33.1",
+						Uses: "aquasecurity/trivy-action@v0.36.0",
 						With: map[string]interface{}{
 							"scan-type": "fs",
 							"scan-ref":  ".",
@@ -129,7 +129,7 @@ func createTrivyDependencyScanStep() *Step {
 				fmt.Printf("Found dependency file: %s\n", file)
 				return &Step{
 					Name: "Scan dependencies with Trivy",
-					Uses: "aquasecurity/trivy-action@0.33.1",
+					Uses: "aquasecurity/trivy-action@v0.36.0",
 					With: map[string]interface{}{
 						"scan-type": "fs",
 						"scan-ref":  ".",
