@@ -35,7 +35,7 @@ func addTrivySecuritySteps(job *Job) {
 	// Always add secret scanning step
 	secretScanStep := &Step{
 		Name: "Scan for secrets with Trivy",
-		Uses: "aquasecurity/trivy-action@0.33.1",
+		Uses: "aquasecurity/trivy-action@v0.36.0",
 		With: map[string]interface{}{
 			"scan-type": "fs",
 			"scan-ref":  ".",
